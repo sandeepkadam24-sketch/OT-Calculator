@@ -115,11 +115,16 @@
 
 <div class="calculator-card">
   <h2>OT Bonanza Calculator</h2>
-  <div class="subtitle">Dynamic Rate Multiplier Mode</div>
+  <div class="subtitle">Dynamic Rate & Multi-Channel Mode</div>
 
   <div class="form-group">
-    <label for="callCount">MTD Chat/Call Count:</label>
-    <input type="number" id="callCount" placeholder="Enter total chats (e.g., 1250)" min="0">
+    <label for="callCount">MTD Call/Chat Count:</label>
+    <input type="number" id="callCount" placeholder="Enter total chats/calls (e.g., 1000)" min="0">
+  </div>
+
+  <div class="form-group">
+    <label for="emailCount">MTD Email Count (3 Emails = 2 Chats):</label>
+    <input type="number" id="emailCount" placeholder="Enter total emails (e.g., 300)" min="0">
   </div>
 
   <div class="form-group">
@@ -144,8 +149,13 @@
 <script>
 function calculatePayout() {
   const calls = parseInt(document.getElementById('callCount').value) || 0;
+  const emails = parseInt(document.getElementById('emailCount').value) || 0;
   const csat = parseFloat(document.getElementById('csat').value) || 0;
   const hasUnsavedError = document.getElementById('unsavedError').checked;
+
+  // Convert emails to equivalent chat count: 3 emails = 2 chats
+  const equivalentEmailVolume = emails * (2 / 3);
+  const totalVolume = calls + equivalentEmailVolume;
 
   const rateTier1 = 18000 / 1220; // ~14.754
   const rateTier2 = 28000 / 1270; // ~22.047
@@ -156,28 +166,28 @@ function calculatePayout() {
   let totalPayout = 0;
   let calculationNote = "";
 
-  // Hard floor rule: Below 990 transactions means zero payout
-  if (calls < 990) {
+  // Hard floor rule: Below 990 total equivalent transactions means zero payout
+  if (totalVolume < 990) {
     document.getElementById('payoutAmount').innerText = "₹ 0";
-    document.getElementById('payoutDetails').innerText = "No payout: Total transactions are below the minimum limit of 990.";
+    document.getElementById('payoutDetails').innerText = `No payout: Total equivalent transactions (${totalVolume.toFixed(1)}) are below the minimum threshold of 990.`;
     return;
   }
 
   const meetsRiderConditions = (csat >= 61) && (!hasUnsavedError);
 
   if (meetsRiderConditions) {
-    if (calls >= 1340) {
+    if (totalVolume >= 1340) {
       appliedRate = rateTier3;
-      calculationNote = `Tier 3 rate applied (₹${appliedRate.toFixed(3)}/chat for ${calls} chats).`;
-    } else if (calls >= 1270) {
+      calculationNote = `Tier 3 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
+    } else if (totalVolume >= 1270) {
       appliedRate = rateTier2;
-      calculationNote = `Tier 2 rate applied (₹${appliedRate.toFixed(3)}/chat for ${calls} chats).`;
-    } else if (calls >= 1220) {
+      calculationNote = `Tier 2 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
+    } else if (totalVolume >= 1220) {
       appliedRate = rateTier1;
-      calculationNote = `Tier 1 rate applied (₹${appliedRate.toFixed(3)}/chat for ${calls} chats).`;
+      calculationNote = `Tier 1 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
     } else {
       appliedRate = fallbackRate;
-      calculationNote = `Between 990 and 1219 chats. Fallback rate applied (₹12.21/chat for ${calls} chats).`;
+      calculationNote = `Between 990 and 1219 units. Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(1)} total units).`;
     }
   } else {
     appliedRate = fallbackRate;
@@ -185,10 +195,10 @@ function calculatePayout() {
     if (csat < 61) reasonText.push("CSAT is below 61%");
     if (hasUnsavedError) reasonText.push("More than 1 unsaved error");
     
-    calculationNote = `Fallback rate applied (₹12.21/chat for ${calls} chats) due to: ${reasonText.join(" and ")}.`;
+    calculationNote = `Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(1)} units) due to: ${reasonText.join(" and ")}.`;
   }
 
-  totalPayout = calls * appliedRate;
+  totalPayout = totalVolume * appliedRate;
 
   document.getElementById('payoutAmount').innerText = "₹ " + totalPayout.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   document.getElementById('payoutDetails').innerText = calculationNote;
