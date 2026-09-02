@@ -156,6 +156,13 @@ function calculatePayout() {
   let totalPayout = 0;
   let calculationNote = "";
 
+  // Hard floor rule: Below 990 transactions means zero payout
+  if (calls < 990) {
+    document.getElementById('payoutAmount').innerText = "₹ 0";
+    document.getElementById('payoutDetails').innerText = "No payout: Total transactions are below the minimum limit of 990.";
+    return;
+  }
+
   const meetsRiderConditions = (csat >= 61) && (!hasUnsavedError);
 
   if (meetsRiderConditions) {
@@ -170,7 +177,7 @@ function calculatePayout() {
       calculationNote = `Tier 1 rate applied (₹${appliedRate.toFixed(3)}/chat for ${calls} chats).`;
     } else {
       appliedRate = fallbackRate;
-      calculationNote = `Below 1220 threshold. Fallback rate applied (₹12.21/chat for ${calls} chats).`;
+      calculationNote = `Between 990 and 1219 chats. Fallback rate applied (₹12.21/chat for ${calls} chats).`;
     }
   } else {
     appliedRate = fallbackRate;
@@ -178,7 +185,7 @@ function calculatePayout() {
     if (csat < 61) reasonText.push("CSAT is below 61%");
     if (hasUnsavedError) reasonText.push("More than 1 unsaved error");
     
-    calculationNote = `Fallback rate applied (₹12.21/chat) due to: ${reasonText.join(" and ")}.`;
+    calculationNote = `Fallback rate applied (₹12.21/chat for ${calls} chats) due to: ${reasonText.join(" and ")}.`;
   }
 
   totalPayout = calls * appliedRate;
