@@ -61,6 +61,12 @@
       border-color: #ffcc00;
       outline: none;
     }
+    input[readonly] {
+      background-color: #1a233a;
+      border-color: #ffcc00;
+      color: #ffcc00;
+      font-weight: bold;
+    }
     .checkbox-group {
       display: flex;
       align-items: center;
@@ -119,12 +125,17 @@
 
   <div class="form-group">
     <label for="callCount">MTD Call/Chat Count:</label>
-    <input type="number" id="callCount" placeholder="Enter total chats/calls (e.g., 1000)" min="0">
+    <input type="number" id="callCount" placeholder="Enter total chats/calls (e.g., 1000)" min="0" oninput="updateTotalTransactions()">
   </div>
 
   <div class="form-group">
     <label for="emailCount">MTD Email Count (3 Emails = 2 Chats):</label>
-    <input type="number" id="emailCount" placeholder="Enter total emails (e.g., 300)" min="0">
+    <input type="number" id="emailCount" placeholder="Enter total emails (e.g., 300)" min="0" oninput="updateTotalTransactions()">
+  </div>
+
+  <div class="form-group">
+    <label for="totalTransactions">Total Equivalent Transactions (Auto):</label>
+    <input type="number" id="totalTransactions" placeholder="0" readonly>
   </div>
 
   <div class="form-group">
@@ -147,15 +158,24 @@
 </div>
 
 <script>
+function updateTotalTransactions() {
+  const calls = parseInt(document.getElementById('callCount').value) || 0;
+  const emails = parseInt(document.getElementById('emailCount').value) || 0;
+  
+  // 3 Emails = 2 Calls/Chats
+  const totalVolume = calls + (emails * (2 / 3));
+  document.getElementById('totalTransactions').value = totalVolume.toFixed(2);
+}
+
 function calculatePayout() {
   const calls = parseInt(document.getElementById('callCount').value) || 0;
   const emails = parseInt(document.getElementById('emailCount').value) || 0;
   const csat = parseFloat(document.getElementById('csat').value) || 0;
   const hasUnsavedError = document.getElementById('unsavedError').checked;
 
-  // Convert emails to equivalent chat count: 3 emails = 2 chats
-  const equivalentEmailVolume = emails * (2 / 3);
-  const totalVolume = calls + equivalentEmailVolume;
+  // Automated total transaction sum
+  const totalVolume = calls + (emails * (2 / 3));
+  document.getElementById('totalTransactions').value = totalVolume.toFixed(2);
 
   const rateTier1 = 18000 / 1220; // ~14.754
   const rateTier2 = 28000 / 1270; // ~22.047
@@ -166,10 +186,10 @@ function calculatePayout() {
   let totalPayout = 0;
   let calculationNote = "";
 
-  // Hard floor rule: Below 990 total equivalent transactions means zero payout
+  // Floor rule: Below 990 total equivalent transactions means zero payout
   if (totalVolume < 990) {
     document.getElementById('payoutAmount').innerText = "₹ 0";
-    document.getElementById('payoutDetails').innerText = `No payout: Total equivalent transactions (${totalVolume.toFixed(1)}) are below the minimum threshold of 990.`;
+    document.getElementById('payoutDetails').innerText = `No payout: Total equivalent transactions (${totalVolume.toFixed(2)}) are below the minimum limit of 990.`;
     return;
   }
 
@@ -178,16 +198,16 @@ function calculatePayout() {
   if (meetsRiderConditions) {
     if (totalVolume >= 1340) {
       appliedRate = rateTier3;
-      calculationNote = `Tier 3 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
+      calculationNote = `Tier 3 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(2)} transactions).`;
     } else if (totalVolume >= 1270) {
       appliedRate = rateTier2;
-      calculationNote = `Tier 2 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
+      calculationNote = `Tier 2 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(2)} transactions).`;
     } else if (totalVolume >= 1220) {
       appliedRate = rateTier1;
-      calculationNote = `Tier 1 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(1)} total units).`;
+      calculationNote = `Tier 1 rate applied (₹${appliedRate.toFixed(3)}/unit for ${totalVolume.toFixed(2)} transactions).`;
     } else {
       appliedRate = fallbackRate;
-      calculationNote = `Between 990 and 1219 units. Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(1)} total units).`;
+      calculationNote = `Between 990 and 1219 transactions. Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(2)} transactions).`;
     }
   } else {
     appliedRate = fallbackRate;
@@ -195,7 +215,7 @@ function calculatePayout() {
     if (csat < 61) reasonText.push("CSAT is below 61%");
     if (hasUnsavedError) reasonText.push("More than 1 unsaved error");
     
-    calculationNote = `Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(1)} units) due to: ${reasonText.join(" and ")}.`;
+    calculationNote = `Fallback rate applied (₹12.21/unit for ${totalVolume.toFixed(2)} transactions) due to: ${reasonText.join(" and ")}.`;
   }
 
   totalPayout = totalVolume * appliedRate;
